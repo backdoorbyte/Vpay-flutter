@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 import aiosqlite
+import logging
+logger = logging.getLogger(__name__)
 
 # Check if DATABASE_URL is set (Railway PostgreSQL)
 DATABASE_URL = os.getenv("DATABASE_URL")
