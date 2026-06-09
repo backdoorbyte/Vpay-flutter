@@ -1,0 +1,23 @@
+# Nixpacks configuration for VPay Backend
+# Ensures ffmpeg and system dependencies are installed on Railway
+
+[phases.setup]
+# Install ffmpeg and other required system packages via apt
+aptPkgs = ["ffmpeg", "libsndfile1"]
+
+[phases.install]
+# Install Python dependencies
+cmd = "pip install --no-cache-dir -r requirements.txt"
+
+[phases.build]
+# No additional build step needed for FastAPI app
+cmd = ""
+
+[start]
+# Start the FastAPI server with uvicorn
+cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+[variables]
+# Environment variables for ML models
+HF_HOME = "/tmp/huggingface"
+PRELOAD_ML_MODELS = "true"
