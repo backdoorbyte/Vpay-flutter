@@ -74,18 +74,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers - routers with their own prefix don't need it here
-app.include_router(enroll.router, tags=["enrollment"])  # Has /enroll prefix in router
-app.include_router(verify.router, tags=["verification"])  # Has /verify prefix in router
-app.include_router(transcribe.router, tags=["transcription"])  # Has /transcribe prefix in router
-app.include_router(parse.router, tags=["parsing"])  # Has /parse prefix in router
-app.include_router(voice_pay.router, tags=["voice-pay"])  # Has /voice-pay prefix in router
-app.include_router(payment_intent.router, tags=["payment-intent"])  # No prefix in router
-app.include_router(payment.router, tags=["payment"])  # No prefix in router
-app.include_router(challenge.router, tags=["challenge"])  # Has /challenge prefix in router
-app.include_router(wallet.router, tags=["wallet"])  # No prefix in router
-app.include_router(contacts.router, tags=["contacts"])  # Has /contacts prefix in router
-app.include_router(qr.router, tags=["qr"])  # Has /qr prefix in router
+# Include routers
+app.include_router(enroll.router, prefix="/enroll", tags=["enrollment"])
+app.include_router(verify.router, prefix="/verify", tags=["verification"])
+app.include_router(transcribe.router, prefix="/transcribe", tags=["transcription"])
+app.include_router(parse.router, prefix="/parse", tags=["parsing"])
+app.include_router(voice_pay.router, prefix="/voice-pay", tags=["voice-pay"])
+app.include_router(payment_intent.router, prefix="/pay/intent", tags=["payment-intent"])
+app.include_router(payment.router, prefix="/pay", tags=["payment"])
+app.include_router(challenge.router, prefix="/challenge", tags=["challenge"])
+app.include_router(wallet.router, prefix="/wallet", tags=["wallet"])
+app.include_router(contacts.router, prefix="/contacts", tags=["contacts"])
+app.include_router(qr.router, prefix="/qr", tags=["qr"])
 
 
 @app.get("/", tags=["health"])

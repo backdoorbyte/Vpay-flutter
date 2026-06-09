@@ -25,7 +25,10 @@ ENV/
 Thumbs.db
 
 # ML Models (downloaded at runtime)
-models/
+models/*.bin
+models/*.pt
+models/*.pth
+models/*.ckpt
 .cache/
 
 # Database

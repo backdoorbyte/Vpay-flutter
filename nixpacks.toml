@@ -13,9 +13,9 @@ cmd = "pip install --no-cache-dir -r requirements.txt"
 # No additional build step needed for FastAPI app
 cmd = ""
 
-# Use start script instead of inline command
 [start]
-cmd = "chmod +x start.sh && ./start.sh"
+# Start the FastAPI server with uvicorn
+cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
 
 [variables]
 # Environment variables for ML models
