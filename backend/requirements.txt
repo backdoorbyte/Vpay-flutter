@@ -1,0 +1,21 @@
+# VPay Backend Dependencies
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.10.4
+pydantic-settings==2.7.0
+numpy==1.26.4
+torch==2.2.2
+torchaudio==2.2.2
+speechbrain==1.0.2
+# SpeechBrain 1.0.2 passes use_auth_token; huggingface_hub 1.0+ removed it
+huggingface_hub>=0.23.0,<1.0
+faster-whisper==1.1.0
+soundfile==0.12.1
+librosa==0.10.2.post1
+scipy==1.14.1
+aiosqlite==0.20.0
+asyncpg==0.29.0
+pytest==8.3.4
+httpx==0.28.1
+opencv-python-headless==4.10.0.84

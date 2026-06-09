@@ -1,0 +1,28 @@
+"""Wallet and transaction history endpoints."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
+
+import aiosqlite
+from database.connection import get_db
+from models.schemas import TransactionListResponse, WalletResponse
+from services import payment_service
+
+router = APIRouter(tags=["Wallet"])
+
+
+@router.get("/wallet", response_model=WalletResponse)
+async def get_wallet(db: aiosqlite.Connection = Depends(get_db)):
+    data = await payment_service.get_wallet(db)
+    return WalletResponse(
+        balance=data["balance"],
+        is_voice_enrolled=data["is_voice_enrolled"],
+        user_name=data["user_name"],
+    )
+
+
+@router.get("/transactions", response_model=TransactionListResponse)
+async def get_transactions(db: aiosqlite.Connection = Depends(get_db)):
+    txs = await payment_service.list_transactions(db)
+    return TransactionListResponse(transactions=txs)
