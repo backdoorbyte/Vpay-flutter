@@ -14,12 +14,12 @@ from models.schemas import (
 from services import contact_service
 from services.upi_utils import is_valid_upi
 
-router = APIRouter(prefix="/contacts", tags=["Contacts"])
+router = APIRouter(tags=["Contacts"])
 
 DEFAULT_USER_ID = 1
 
 
-@router.get("", response_model=ContactListResponse)
+@router.get("/contacts", response_model=ContactListResponse)
 async def get_contacts(db: aiosqlite.Connection = Depends(get_db)):
     rows = await contact_service.list_contacts(db, DEFAULT_USER_ID)
     return ContactListResponse(
@@ -27,7 +27,7 @@ async def get_contacts(db: aiosqlite.Connection = Depends(get_db)):
     )
 
 
-@router.post("", response_model=ContactItem)
+@router.post("/contacts", response_model=ContactItem)
 async def create_contact(
     body: ContactCreateRequest,
     db: aiosqlite.Connection = Depends(get_db),

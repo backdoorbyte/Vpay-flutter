@@ -14,7 +14,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 
 from database.connection import close_db, init_db
 from routes import (
@@ -94,33 +93,3 @@ app.include_router(qr.router, tags=["qr"])  # Has /qr prefix in router
 async def health():
     """Health check endpoint for Railway"""
     return {"status": "ok", "service": "VPay"}
-
-
-@app.get("/debug/db", tags=["debug"])
-async def download_database():
-    """Download the SQLite database file (debug only)"""
-    db_path = "database.db"
-    if os.path.exists(db_path):
-        return FileResponse(db_path, media_type='application/octet-sqlite', filename="database.db")
-    return {"error": "Database not found"}
-
-
-@app.get("/debug/db/inspect", tags=["debug"])
-async def inspect_database():
-    """View database contents as JSON"""
-    import sqlite3
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [t[0] for t in cursor.fetchall()]
-
-    result = {}
-    for table in tables:
-        cursor.execute(f"SELECT * FROM {table}")
-        rows = cursor.fetchall()
-        result[table] = [dict(row) for row in rows]
-
-    conn.close()
-    return result

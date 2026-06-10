@@ -23,7 +23,7 @@ from services.recipient_resolver import (
 from services.whisper_service import transcribe_audio
 from utils.audio import cleanup_path, save_upload_to_wav
 
-router = APIRouter(prefix="/voice-pay", tags=["Voice Pay"])
+router = APIRouter(tags=["Voice Pay"])
 
 logger = logging.getLogger("vpay")
 
@@ -41,7 +41,7 @@ def _finalize_confidence(parsed):
     return parsed.confidence
 
 
-@router.post("/parse", response_model=VoicePayResponse)
+@router.post("/voice-pay/parse", response_model=VoicePayResponse)
 async def voice_pay_parse(
     audio: UploadFile = File(...),
     db: aiosqlite.Connection = Depends(get_db),

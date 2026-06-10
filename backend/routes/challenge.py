@@ -22,7 +22,7 @@ from services.whisper_service import transcribe_audio
 from utils.audio import cleanup_path, save_upload_to_wav
 from utils.phrase_match import phrase_matches
 
-router = APIRouter(prefix="/challenge", tags=["Challenge-Response"])
+router = APIRouter(tags=["Challenge-Response"])
 
 DEFAULT_USER_ID = 1
 
@@ -30,7 +30,7 @@ DEFAULT_USER_ID = 1
 _verified_challenges: dict[int, float] = {}
 
 
-@router.post("", response_model=ChallengeResponse)
+@router.post("/challenge", response_model=ChallengeResponse)
 async def create_challenge(
     language: LanguageCode = Query(LanguageCode.en),
     db: aiosqlite.Connection = Depends(get_db),
@@ -44,7 +44,7 @@ async def create_challenge(
     )
 
 
-@router.post("/verify", response_model=ChallengeVerifyResponse)
+@router.post("/challenge/verify", response_model=ChallengeVerifyResponse)
 async def verify_challenge(
     challenge_id: int = Query(...),
     language: LanguageCode = Query(LanguageCode.en),

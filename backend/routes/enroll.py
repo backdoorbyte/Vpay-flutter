@@ -18,13 +18,13 @@ from services import enrollment_service
 from services.speaker_service import extract_embedding
 from utils.audio import chunk_audio, cleanup_path, save_upload_to_wav
 
-router = APIRouter(prefix="/enroll", tags=["Voice Enrollment"])
+router = APIRouter(tags=["Voice Enrollment"])
 logger = logging.getLogger("vpay")
 
 DEFAULT_USER_ID = 1
 
 
-@router.post("", response_model=EnrollResponse)
+@router.post("/enroll", response_model=EnrollResponse)
 async def enroll_voice_sample(
     audio: UploadFile = File(..., description="Voice sample (webm/wav)"),
     mode: str = Form("single", description="Enrollment mode: 'single' (one-shot) or 'multi' (traditional)"),

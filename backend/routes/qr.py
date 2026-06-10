@@ -9,10 +9,10 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from models.schemas import QrParseResponse
 from services.qr_service import parse_qr_image
 
-router = APIRouter(prefix="/qr", tags=["QR Payments"])
+router = APIRouter(tags=["QR Payments"])
 
 
-@router.post("/parse", response_model=QrParseResponse)
+@router.post("/qr/parse", response_model=QrParseResponse)
 async def parse_payment_qr(
     image: UploadFile = File(..., description="UPI payment QR image (PNG/JPEG)"),
 ):

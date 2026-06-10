@@ -15,12 +15,12 @@ from services import enrollment_service
 from services.speaker_service import get_threshold, verify_against_enrolled
 from utils.audio import cleanup_path, save_upload_to_wav
 
-router = APIRouter(prefix="/verify", tags=["Speaker Verification"])
+router = APIRouter(tags=["Speaker Verification"])
 
 DEFAULT_USER_ID = 1
 
 
-@router.post("", response_model=VerifyResponse)
+@router.post("/verify", response_model=VerifyResponse)
 async def verify_speaker(
     audio: UploadFile = File(...),
     db: aiosqlite.Connection = Depends(get_db),

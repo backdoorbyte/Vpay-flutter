@@ -10,10 +10,10 @@ from config import PARSE_MIN_CONFIDENCE
 from models.schemas import ParsedCommand, ParseRequest
 from services.command_parser import parse_payment_command
 
-router = APIRouter(prefix="/parse", tags=["Command Parsing"])
+router = APIRouter(tags=["Command Parsing"])
 
 
-@router.post("", response_model=ParsedCommand)
+@router.post("/parse", response_model=ParsedCommand)
 async def parse_command(body: ParseRequest):
     """Parse recipient, amount, and note from natural language."""
     result = parse_payment_command(body.text)
