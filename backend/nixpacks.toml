@@ -13,9 +13,9 @@ cmd = "pip install --no-cache-dir -r requirements.txt"
 # No additional build step needed for FastAPI app
 cmd = ""
 
-# Use start script instead of inline command
+# Use Python entry point which handles PORT env var properly
 [start]
-cmd = "chmod +x start.sh && ./start.sh"
+cmd = "python run.py"
 
 [variables]
 # Environment variables for ML models
