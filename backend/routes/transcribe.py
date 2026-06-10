@@ -15,7 +15,7 @@ from utils.audio import cleanup_path, save_upload_to_wav
 router = APIRouter(tags=["Speech-to-Text"])
 
 
-@router.post("/", response_model=TranscribeResponse)
+@router.post("", response_model=TranscribeResponse)
 async def transcribe(
     audio: UploadFile = File(...),
     language: LanguageCode = Query(LanguageCode.en, description="en | hi | hinglish"),

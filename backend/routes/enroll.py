@@ -24,7 +24,7 @@ logger = logging.getLogger("vpay")
 DEFAULT_USER_ID = 1
 
 
-@router.post("/enroll", response_model=EnrollResponse)
+@router.post("", response_model=EnrollResponse)
 async def enroll_voice_sample(
     audio: UploadFile = File(..., description="Voice sample (webm/wav)"),
     mode: str = Form("single", description="Enrollment mode: 'single' (one-shot) or 'multi' (traditional)"),

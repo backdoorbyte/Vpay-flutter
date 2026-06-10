@@ -48,7 +48,7 @@ def _new_intent_id() -> int:
     return iid
 
 
-@router.post("/", response_model=PaymentIntentResponse)
+@router.post("", response_model=PaymentIntentResponse)
 async def create_payment_intent(body: PaymentIntentRequest):
     """Register a pending payment and return TTS confirmation prompt."""
     if not is_valid_upi(body.upi_id):

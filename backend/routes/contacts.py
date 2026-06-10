@@ -19,7 +19,7 @@ router = APIRouter(tags=["Contacts"])
 DEFAULT_USER_ID = 1
 
 
-@router.get("/", response_model=ContactListResponse)
+@router.get("", response_model=ContactListResponse)
 async def get_contacts(db: aiosqlite.Connection = Depends(get_db)):
     rows = await contact_service.list_contacts(db, DEFAULT_USER_ID)
     return ContactListResponse(
@@ -27,7 +27,7 @@ async def get_contacts(db: aiosqlite.Connection = Depends(get_db)):
     )
 
 
-@router.post("/contacts", response_model=ContactItem)
+@router.post("", response_model=ContactItem)
 async def create_contact(
     body: ContactCreateRequest,
     db: aiosqlite.Connection = Depends(get_db),

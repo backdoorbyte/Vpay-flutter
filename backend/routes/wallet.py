@@ -12,7 +12,7 @@ from services import payment_service
 router = APIRouter(tags=["Wallet"])
 
 
-@router.get("/", response_model=WalletResponse)
+@router.get("", response_model=WalletResponse)
 async def get_wallet(db: aiosqlite.Connection = Depends(get_db)):
     data = await payment_service.get_wallet(db)
     return WalletResponse(
