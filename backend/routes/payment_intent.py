@@ -48,7 +48,7 @@ def _new_intent_id() -> int:
     return iid
 
 
-@router.post("/pay/intent", response_model=PaymentIntentResponse)
+@router.post("/", response_model=PaymentIntentResponse)
 async def create_payment_intent(body: PaymentIntentRequest):
     """Register a pending payment and return TTS confirmation prompt."""
     if not is_valid_upi(body.upi_id):
@@ -89,7 +89,7 @@ async def _verify_audio_async(
     return text, confirm_ok, speaker_ok, score, probe_emb
 
 
-@router.post("/voice-pay/confirm", response_model=ConfirmVerifyResponse)
+@router.post("/confirm", response_model=ConfirmVerifyResponse)
 async def verify_payment_confirmation(
     intent_id: int = Query(...),
     audio: UploadFile = File(...),

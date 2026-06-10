@@ -23,7 +23,7 @@ from services.recipient_resolver import (
 from services.whisper_service import transcribe_audio
 from utils.audio import cleanup_path, save_upload_to_wav
 
-router = APIRouter(prefix="/voice-pay", tags=["Voice Pay"])
+router = APIRouter(tags=["Voice Pay"])
 
 logger = logging.getLogger("vpay")
 

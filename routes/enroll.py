@@ -18,7 +18,7 @@ from services import enrollment_service
 from services.speaker_service import extract_embedding
 from utils.audio import chunk_audio, cleanup_path, save_upload_to_wav
 
-router = APIRouter(prefix="/enroll", tags=["Voice Enrollment"])
+router = APIRouter(tags=["Voice Enrollment"])
 logger = logging.getLogger("vpay")
 
 DEFAULT_USER_ID = 1

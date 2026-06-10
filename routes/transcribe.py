@@ -12,7 +12,7 @@ from models.schemas import LanguageCode, TranscribeResponse
 from services.whisper_service import transcribe_audio
 from utils.audio import cleanup_path, save_upload_to_wav
 
-router = APIRouter(prefix="/transcribe", tags=["Speech-to-Text"])
+router = APIRouter(tags=["Speech-to-Text"])
 
 
 @router.post("", response_model=TranscribeResponse)

@@ -22,7 +22,7 @@ from services.whisper_service import transcribe_audio
 from utils.audio import cleanup_path, save_upload_to_wav
 from utils.phrase_match import phrase_matches
 
-router = APIRouter(prefix="/challenge", tags=["Challenge-Response"])
+router = APIRouter(tags=["Challenge-Response"])
 
 DEFAULT_USER_ID = 1
 

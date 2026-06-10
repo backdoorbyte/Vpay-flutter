@@ -20,7 +20,7 @@ router = APIRouter(tags=["Speaker Verification"])
 DEFAULT_USER_ID = 1
 
 
-@router.post("/verify", response_model=VerifyResponse)
+@router.post("/", response_model=VerifyResponse)
 async def verify_speaker(
     audio: UploadFile = File(...),
     db: aiosqlite.Connection = Depends(get_db),

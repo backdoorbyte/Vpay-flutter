@@ -41,7 +41,7 @@ def _finalize_confidence(parsed):
     return parsed.confidence
 
 
-@router.post("/voice-pay/parse", response_model=VoicePayResponse)
+@router.post("/parse", response_model=VoicePayResponse)
 async def voice_pay_parse(
     audio: UploadFile = File(...),
     db: aiosqlite.Connection = Depends(get_db),

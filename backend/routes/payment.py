@@ -21,7 +21,7 @@ router = APIRouter(tags=["Payments"])
 DEFAULT_USER_ID = 1
 
 
-@router.post("/pay", response_model=PaymentResponse)
+@router.post("/", response_model=PaymentResponse)
 async def pay(
     body: PaymentRequest,
     db: aiosqlite.Connection = Depends(get_db),

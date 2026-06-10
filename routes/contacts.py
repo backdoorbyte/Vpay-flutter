@@ -14,7 +14,7 @@ from models.schemas import (
 from services import contact_service
 from services.upi_utils import is_valid_upi
 
-router = APIRouter(prefix="/contacts", tags=["Contacts"])
+router = APIRouter(tags=["Contacts"])
 
 DEFAULT_USER_ID = 1
 
