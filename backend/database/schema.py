@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS voice_embeddings (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Face embedding (512-dim) stored as JSON array for verification
+CREATE TABLE IF NOT EXISTS face_embeddings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    embedding_json TEXT NOT NULL,
+    enrolled_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Active challenge for challenge-response flow
 CREATE TABLE IF NOT EXISTS challenges (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +85,12 @@ async def _migrate_columns(db: aiosqlite.Connection) -> None:
     cols = {r[1] for r in await cursor.fetchall()}
     if "upi_id" not in cols:
         await db.execute("ALTER TABLE transactions ADD COLUMN upi_id TEXT")
+
+    # Add face enrollment flag to users
+    cursor = await db.execute("PRAGMA table_info(users)")
+    user_cols = {r[1] for r in await cursor.fetchall()}
+    if "is_face_enrolled" not in user_cols:
+        await db.execute("ALTER TABLE users ADD COLUMN is_face_enrolled INTEGER NOT NULL DEFAULT 0")
 
 
 async def apply_schema(db: aiosqlite.Connection) -> None:

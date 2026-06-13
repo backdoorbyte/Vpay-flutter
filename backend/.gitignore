@@ -38,3 +38,6 @@ models/*.ckpt
 # Logs
 *.log
 logs/
+
+# Claude
+.claude/

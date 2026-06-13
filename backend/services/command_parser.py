@@ -123,7 +123,9 @@ def _parse_amount_from_words(text: str) -> Optional[float]:
     # 3. Word-based amounts (Hindi/English composite numbers)
     # Remove common stop words that interfere with number parsing
     stop_words = {"bhejo", "bhejiye", "bhejna", "send", "pay", "transfer",
-                  "bhej", "do", "de", "dena", "dein", "dijiye", "kar", "karo", "kariye"}
+                  "bhej", "do", "de", "dena", "dein", "dijiye", "kar", "karo", "kariye",
+                  # Devanagari Hindi verbs
+                  "भेजो", "भेजिए", "भेजना", "भेज", "दे", "देना", "दें", "दीजिए", "कर", "करो", "करीये"}
 
     tokens = collapsed.split()
     # Temporarily strip trailing stop words for cleaner parsing
@@ -152,8 +154,10 @@ def _parse_word_based_amount(tokens: list[str]) -> Optional[int]:
               'sau' (100), 'hazaar' (1000), etc.
     Also supports composite: 'do hazaar pachas' → 2000 + 50 = 2050
     """
-    # Words that indicate "do" is a verb, not a number
-    verbs_before_do = {"bhej", "bhejo", "bhejiye", "bhejna", "de", "dein", "dena", "dijiye"}
+    # Words that indicate "do" (दो) is a verb meaning "give/send", not the number 2
+    verbs_before_do = {"bhej", "bhejo", "bhejiye", "bhejna", "de", "dein", "dena", "dijiye",
+                       # Devanagari Hindi verbs
+                       "भेज", "भेजो", "भेजिए", "भेजना", "दे", "दें", "देना", "दीजिए"}
 
     total = 0
     current_group = 0
@@ -166,6 +170,10 @@ def _parse_word_based_amount(tokens: list[str]) -> Optional[int]:
 
         # Skip "do" (2) when it follows a verb like "bhej do" (send/give)
         if token == "do" and prev_token in verbs_before_do:
+            prev_token = token
+            continue
+        # Also skip Devanagari "दो" (do = give) when it follows a verb
+        if token == "दो" and prev_token in verbs_before_do:
             prev_token = token
             continue
 
@@ -195,15 +203,21 @@ def _extract_recipient(text: str, amount: Optional[float]) -> Optional[str]:
     clean_text = re.sub(r"[.!?]", "", text).strip()
 
     patterns = [
-        # "Send 500 rupees to Rahul"
-        r"(?:send|transfer|pay|bhej(?:o|iye|na)?|भेज(?:ो|िए)?|दो|do)\s+.*?\s+to\s+([A-Za-zऀ-ॿ]+)",
+        # English / Hinglish patterns first
+        r"(?:send|transfer|pay|bhej(?:o|iye|na)?|भेज(?:ो|िए|ना)?|दो|दे|do|de)\s+.*?\s+to\s+([A-Za-zऀ-ॿ]+)",
         r"\bto\s+([A-Za-zऀ-ॿ]+)",
         # "Rahul ko 500" / "Rahul ko bhejo"
         r"([A-Za-zऀ-ॿ]+)\s+ko\b",
         # "Pay Rahul 500"
-        r"(?:send|transfer|pay|bhej(?:o|iye|na)?|भेज(?:ो|िए)?|दो|do)\s+([A-Za-zऀ-ॿ]+)\s+",
-        # "राहुल को"
+        r"(?:send|transfer|pay|bhej(?:o|iye|na)?|भेज(?:ो|िए|ना)?|दो|दे|do|de)\s+([A-Za-zऀ-ॿ]+)\s+",
+        # Devanagari "राहुल को" / "राहुल को"
         r"([ऀ-ॿ]+)\s*को\b",
+        # Hindi: "मोहन को 500 रुपये दो"
+        r"([ऀ-ॿ]+)\s*(?:को|ko)\s",
+        # Hindi: "मोहन को bhejo" / "मोहन को भेजो"
+        r"([ऀ-ॿ]+)\s+(?:ko|को)\s+(?:bhej|भेज)",
+        # Direct Devanagari: "राहुल को 500 रुपये भेजो"
+        r"(?:भेजो|भेजिए|भेजना|दो|दे|देना)\s+([ऀ-ॿ]+)",
     ]
 
     for pat in patterns:
@@ -211,7 +225,7 @@ def _extract_recipient(text: str, amount: Optional[float]) -> Optional[str]:
         if m:
             name = m.group(1).strip().title()
             # Filter out common false positives
-            if name.lower() not in {"rs", "rupees", "rupaye", "send", "bhejo", "rupya", "rupay", "amount", "payment"}:
+            if name.lower() not in {"rs", "rupees", "rupaye", "send", "bhejo", "rupya", "rupay", "amount", "payment", "bhejiye", "bhjna"}:
                 return name
 
     # 10-digit mobile or hyphenated STT number as payee
@@ -222,7 +236,8 @@ def _extract_recipient(text: str, amount: Optional[float]) -> Optional[str]:
     # Fallback: if we have an amount, any word that isn't the amount or a stopword could be the name
     if amount is not None:
         words = clean_text.split()
-        stop_words = {"send", "pay", "to", "ko", "bhejo", "transfer", "rupees", "rs", "rupaye", "for", "please"}
+        stop_words = {"send", "pay", "to", "ko", "bhejo", "transfer", "rupees", "rs", "rupaye", "for", "please",
+                      "भेजो", "भेजिए", "भेजना", "दो", "दे", "देना", "रुपये", "रुपया"}
         for w in words:
             w_clean = w.strip().title()
             if w.lower() not in stop_words and not re.search(r"\d", w):
@@ -261,10 +276,16 @@ def parse_payment_command(text: str) -> ParsedCommand:
         - "2000 rupaye bhej do"
     """
     raw = text.strip()
+    logger.debug(f"Parsing command: {raw}")
 
     amount = _parse_amount_from_words(raw)
+    logger.debug(f"Parsed amount: {amount}")
+
     recipient = _extract_recipient(raw, amount)
+    logger.debug(f"Parsed recipient: {recipient}")
+
     note = _extract_note(raw)
+    logger.debug(f"Parsed note: {note}")
 
     confidence = 0.0
     if amount is not None:

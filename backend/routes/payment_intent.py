@@ -55,8 +55,9 @@ async def create_payment_intent(body: PaymentIntentRequest):
         raise HTTPException(status_code=400, detail="Invalid UPI ID")
 
     intent_id = _new_intent_id()
+    lang = body.language or "en"
     display = body.display_text or format_payment_display(body.amount, body.upi_id.lower())
-    prompt = body.confirm_prompt or format_confirm_prompt(body.upi_id.lower(), body.amount)
+    prompt = body.confirm_prompt or format_confirm_prompt(body.upi_id.lower(), body.amount, language=lang)
 
     _intents[intent_id] = {
         "user_id": DEFAULT_USER_ID,
@@ -66,6 +67,7 @@ async def create_payment_intent(body: PaymentIntentRequest):
         "note": body.note,
         "display_text": display,
         "confirm_prompt": prompt,
+        "language": lang,
         "expires_at": datetime.utcnow() + timedelta(seconds=CHALLENGE_TTL_SECONDS),
         "used": False,
     }
@@ -75,6 +77,7 @@ async def create_payment_intent(body: PaymentIntentRequest):
         display_text=display,
         confirm_prompt=prompt,
         expires_in_seconds=CHALLENGE_TTL_SECONDS,
+        language=lang,
     )
 
 
@@ -105,8 +108,10 @@ async def verify_payment_confirmation(
             transcribed_text="",
             message="Payment session not found",
             response_text="Payment declined",
+            language="en",
         )
 
+    lang = intent.get("language", "en")
     if intent["used"]:
         return ConfirmVerifyResponse(
             verified=False,
@@ -115,6 +120,7 @@ async def verify_payment_confirmation(
             transcribed_text="",
             message="Payment session already used",
             response_text="Payment declined",
+            language=lang,
         )
 
     if datetime.utcnow() > intent["expires_at"]:
@@ -125,6 +131,7 @@ async def verify_payment_confirmation(
             transcribed_text="",
             message="Payment session expired",
             response_text="Payment declined",
+            language=lang,
         )
 
     enrolled = await enrollment_service.get_enrolled_embedding(db, DEFAULT_USER_ID)
@@ -136,6 +143,7 @@ async def verify_payment_confirmation(
             transcribed_text="",
             message="Complete voice enrollment first",
             response_text="Payment declined",
+            language=lang,
         )
 
     wav_path: Path | None = None
@@ -168,6 +176,7 @@ async def verify_payment_confirmation(
                 transcribed_text=text,
                 message="; ".join(msg_parts) or "Confirmation failed",
                 response_text="Payment declined",
+                language=intent.get("language", "en"),
             )
 
         # Refine embedding
@@ -196,6 +205,7 @@ async def verify_payment_confirmation(
                 transcribed_text=text,
                 message=msg,
                 response_text="Payment declined",
+                language=lang,
             )
 
         response = ConfirmVerifyResponse(
@@ -209,7 +219,8 @@ async def verify_payment_confirmation(
             payment_completed=True,
             new_balance=new_balance,
             transaction_id=tx_id,
-            response_text="Payment successful",
+            response_text="Payment confirmed",
+            language=intent.get("language", "en"),
         )
         logger.info(f"Returning confirmation response: verified={response.verified}, payment_completed={response.payment_completed}")
         return response
@@ -222,6 +233,7 @@ async def verify_payment_confirmation(
             transcribed_text="",
             message=str(e),
             response_text="Payment declined",
+            language=lang,
         )
     finally:
         if wav_path:

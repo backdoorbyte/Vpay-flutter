@@ -12,11 +12,15 @@ def format_payment_display(amount: float, upi_id: str) -> str:
     return f"Pay {amt} to {upi_id}"
 
 
-def format_confirm_prompt(upi_id: str, amount: Optional[float] = None) -> str:
+def format_confirm_prompt(upi_id: str, amount: Optional[float] = None, language: str = "en") -> str:
     """Spoken by the voice agent before user confirms."""
     if amount is not None:
         amt = int(amount) if amount == int(amount) else amount
+        if language == "hi":
+            return f"{amt} rupaye {upi_id} bhejne ke liye, haan bol kar payment ki pushti karein"
         return f"Confirm the payment of {amt} rupees to {upi_id}"
+    if language == "hi":
+        return f"{upi_id} ko payment bhejne ke liye, haan bol kar pushti karein"
     return f"Confirm the payment to {upi_id}"
 
 

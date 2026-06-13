@@ -20,6 +20,7 @@ from routes import (
     challenge,
     contacts,
     enroll,
+    face_enroll,
     parse,
     payment,
     payment_intent,
@@ -76,6 +77,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(enroll.router, prefix="/enroll", tags=["enrollment"])
+app.include_router(face_enroll.router, prefix="/face", tags=["face-verification"])
 app.include_router(verify.router, prefix="/verify", tags=["verification"])
 app.include_router(transcribe.router, prefix="/transcribe", tags=["transcription"])
 app.include_router(parse.router, prefix="/parse", tags=["parsing"])

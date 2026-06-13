@@ -44,14 +44,16 @@ def _finalize_confidence(parsed):
 @router.post("/parse", response_model=VoicePayResponse)
 async def voice_pay_parse(
     audio: UploadFile = File(...),
+    language: str | None = None,
     db: aiosqlite.Connection = Depends(get_db),
 ):
     """Record payment command → STT → parse → resolve contact / spoken UPI."""
     wav_path: Path | None = None
     try:
         wav_path = await save_upload_to_wav(audio, max_seconds=MAX_AUDIO_SECONDS_PAY)
+        # Pass explicit language hint if provided, otherwise auto-detect
         text, detected = await asyncio.to_thread(
-            transcribe_audio, wav_path, None  # Auto-detect language (works for Hinglish)
+            transcribe_audio, wav_path, language
         )
         logger.info(f"Transcribed Text: '{text}' (Language: {detected})")
         
@@ -68,7 +70,7 @@ async def voice_pay_parse(
         confirm_prompt = ""
         if parsed.amount is not None and parsed.upi_id:
             display_text = format_payment_display(parsed.amount, parsed.upi_id)
-            confirm_prompt = format_confirm_prompt(parsed.upi_id, parsed.amount)
+            confirm_prompt = format_confirm_prompt(parsed.upi_id, parsed.amount, language=detected)
 
         return VoicePayResponse(
             transcribed_text=command,

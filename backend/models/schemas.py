@@ -148,6 +148,7 @@ class PaymentIntentRequest(BaseModel):
     note: Optional[str] = None
     display_text: Optional[str] = None
     confirm_prompt: Optional[str] = None
+    language: str = "en"
 
 
 class PaymentIntentResponse(BaseModel):
@@ -155,6 +156,7 @@ class PaymentIntentResponse(BaseModel):
     display_text: str
     confirm_prompt: str
     expires_in_seconds: int
+    language: str = "en"
 
 
 class ConfirmVerifyResponse(BaseModel):
@@ -169,6 +171,7 @@ class ConfirmVerifyResponse(BaseModel):
     new_balance: Optional[float] = None
     transaction_id: Optional[int] = None
     response_text: str = Field(default="", description="Text the frontend should speak to the user after confirmation")
+    language: str = "en"
 
 
 class QrParseResponse(BaseModel):

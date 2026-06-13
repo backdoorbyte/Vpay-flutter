@@ -18,6 +18,63 @@ def _digits_only(value: str) -> str:
     return re.sub(r"\D", "", value)
 
 
+def _levenshtein_distance(s1: str, s2: str) -> int:
+    """Calculate Levenshtein edit distance between two strings."""
+    if len(s1) < len(s2):
+        return _levenshtein_distance(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    return previous_row[-1]
+
+
+def _phonetic_match(name: str, contact_name: str) -> bool:
+    """
+    Check if two names are phonetically similar (for Whisper transcription errors).
+    Common Hindi/English variations:
+    - Rahul ~ Raagul, Raahul
+    - Priya ~ Priyaa
+    - Amit ~ Ameet, Amith
+    """
+    name = _normalize_name(name)
+    contact = _normalize_name(contact_name)
+
+    # Direct match
+    if name == contact:
+        return True
+
+    # Normalize common vowel variations in Hindi transcription
+    name_normalized = (name
+        .replace("aa", "a").replace("ee", "i").replace("ii", "i")
+        .replace("oo", "u").replace("uu", "u").replace("ae", "e")
+        .replace("aa", "a"))  # double application for edge cases
+    contact_normalized = (contact
+        .replace("aa", "a").replace("ee", "i").replace("ii", "i")
+        .replace("oo", "u").replace("uu", "u").replace("ae", "e")
+        .replace("aa", "a"))
+
+    if name_normalized == contact_normalized:
+        return True
+
+    # Levenshtein distance within 1-2 edits for short names
+    max_len = max(len(name), len(contact))
+    if max_len <= 5:
+        return _levenshtein_distance(name, contact) <= 1
+    elif max_len <= 8:
+        return _levenshtein_distance(name, contact) <= 2
+    else:
+        return _levenshtein_distance(name, contact) <= 3
+
+
 async def list_contacts(
     db: aiosqlite.Connection, user_id: int = DEFAULT_USER_ID
 ) -> list[dict[str, Any]]:
@@ -82,6 +139,8 @@ async def find_by_name(
     db: aiosqlite.Connection, name: str, user_id: int = DEFAULT_USER_ID
 ) -> Optional[dict[str, Any]]:
     norm = _normalize_name(name)
+
+    # 1. Exact match on normalized name
     cursor = await db.execute(
         """
         SELECT id, name, upi_id, phone FROM contacts
@@ -94,6 +153,7 @@ async def find_by_name(
     if row:
         return dict(row)
 
+    # 2. Prefix match
     cursor = await db.execute(
         """
         SELECT id, name, upi_id, phone FROM contacts
@@ -103,7 +163,24 @@ async def find_by_name(
         (user_id, f"{norm}%"),
     )
     row = await cursor.fetchone()
-    return dict(row) if row else None
+    if row:
+        return dict(row)
+
+    # 3. Fuzzy phonetic match (for Whisper transcription variations)
+    cursor = await db.execute(
+        """
+        SELECT id, name, upi_id, phone FROM contacts
+        WHERE user_id = ?
+        ORDER BY name COLLATE NOCASE
+        """,
+        (user_id,),
+    )
+    all_rows = await cursor.fetchall()
+    for row in all_rows:
+        if _phonetic_match(name, row["name"]):
+            return dict(row)
+
+    return None
 
 
 async def find_by_phone(
