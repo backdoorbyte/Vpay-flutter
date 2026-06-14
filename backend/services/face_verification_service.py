@@ -20,18 +20,53 @@ def _extract_embedding(image_path: Path) -> Optional[np.ndarray]:
     """Extract face embedding from an image using DeepFace."""
     try:
         from deepface import DeepFace
+
+        # Verify file exists and is readable
+        if not image_path.exists():
+            logger.error(f"Image file does not exist: {image_path}")
+            return None
+
+        file_size = image_path.stat().st_size
+        logger.info(f"Processing image: {image_path} ({file_size} bytes)")
+
         # Use VGG-Face for fast embedding extraction
-        result = DeepFace.represent(
-            img_path=str(image_path),
-            model_name="VGG-Face",
-            detector_backend="opencv",
-            enforce_detection=False,
-        )
+        # Try with opencv detector first, fallback to ssd if it fails
+        try:
+            result = DeepFace.represent(
+                img_path=str(image_path),
+                model_name="VGG-Face",
+                detector_backend="opencv",
+                enforce_detection=False,
+                align=True,
+            )
+        except Exception as detect_error:
+            logger.warning(f"Opencv detection failed, trying ssd: {detect_error}")
+            try:
+                result = DeepFace.represent(
+                    img_path=str(image_path),
+                    model_name="VGG-Face",
+                    detector_backend="ssd",
+                    enforce_detection=False,
+                    align=True,
+                )
+            except Exception as ssd_error:
+                logger.error(f"SSD detection also failed: {ssd_error}")
+                return None
+
         if result and len(result) > 0:
-            return np.array(result[0]["embedding"])
+            embedding = np.array(result[0]["embedding"])
+            # Verify embedding is valid (not all zeros)
+            if np.linalg.norm(embedding) > 1e-9:
+                logger.info(f"Successfully extracted face embedding (norm={np.linalg.norm(embedding):.4f})")
+                return embedding
+            else:
+                logger.warning("Extracted embedding has zero norm (invalid)")
+                return None
+
+        logger.warning("No face detected in image (empty result)")
         return None
     except Exception as e:
-        logger.error(f"Face embedding extraction failed: {e}")
+        logger.error(f"Face embedding extraction failed: {e}", exc_info=True)
         return None
 
 
@@ -51,15 +86,19 @@ async def enroll_face(user_id: int, image_path: Path) -> Tuple[bool, str]:
     Returns (success, message).
     """
     try:
+        logger.info(f"Starting face enrollment for user {user_id} with image {image_path}")
+
         embedding = _extract_embedding(image_path)
         if embedding is None:
-            return False, "No face detected in the image"
+            logger.warning(f"No valid face embedding extracted for user {user_id}")
+            return False, "No face detected. Please ensure your face is clearly visible and well-lit."
 
         # Store in cache (will be persisted to DB by caller)
         _embedding_cache[user_id] = embedding
+        logger.info(f"Face enrollment successful for user {user_id} (embedding norm: {np.linalg.norm(embedding):.4f})")
         return True, "Face enrolled successfully"
     except Exception as e:
-        logger.error(f"Face enrollment failed: {e}")
+        logger.error(f"Face enrollment failed: {e}", exc_info=True)
         return False, f"Enrollment failed: {str(e)}"
 
 

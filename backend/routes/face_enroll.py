@@ -31,9 +31,23 @@ async def enroll_face(
         temp_path = Path(f"tmp_audio/face_{DEFAULT_USER_ID}.jpg")
         temp_path.parent.mkdir(parents=True, exist_ok=True)
         content = await image.read()
+
+        # Validate image content
+        if not content or len(content) < 1024:
+            logger.error(f"Invalid image content: {len(content)} bytes")
+            return EnrollResponse(
+                success=False,
+                message="Invalid image: file too small or empty",
+                samples_received=0,
+                samples_required=1,
+                enrolled=False,
+            )
+
         temp_path.write_bytes(content)
+        logger.info(f"Saved face image to {temp_path} ({len(content)} bytes)")
 
         success, message = await face_verification_service.enroll_face(DEFAULT_USER_ID, temp_path)
+        logger.info(f"Face enrollment result: success={success}, message={message}")
 
         if success:
             # Persist to DB
@@ -52,6 +66,7 @@ async def enroll_face(
                     (DEFAULT_USER_ID,),
                 )
                 await db.commit()
+                logger.info(f"Face enrollment persisted to DB for user {DEFAULT_USER_ID}")
 
             return EnrollResponse(
                 success=True,
@@ -69,7 +84,7 @@ async def enroll_face(
                 enrolled=False,
             )
     except Exception as e:
-        logger.error(f"Face enrollment error: {e}")
+        logger.error(f"Face enrollment error: {e}", exc_info=True)
         return EnrollResponse(
             success=False,
             message=str(e),
