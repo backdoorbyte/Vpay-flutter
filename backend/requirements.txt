@@ -21,3 +21,4 @@ httpx==0.28.1
 opencv-python-headless==4.10.0.84
 deepface==0.0.90
 tf-keras==2.15.0
+tensorflow==2.15.0
