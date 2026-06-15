@@ -17,20 +17,24 @@ def preload_models() -> None:
         return
 
     def _whisper():
-        from services.whisper_service import _get_model
-
-        _get_model()
-        logger.info("Whisper model ready")
+        try:
+            from services.whisper_service import _get_model
+            _get_model()
+            logger.info("Whisper model ready")
+        except Exception as e:
+            logger.warning(f"Whisper model preload failed: {e}. Will load on first use.")
 
     def _speaker():
-        from services.speaker_service import _get_classifier
-
-        _get_classifier()
-        logger.info("ECAPA speaker model ready")
+        try:
+            from services.speaker_service import _get_classifier
+            _get_classifier()
+            logger.info("ECAPA speaker model ready")
+        except Exception as e:
+            logger.warning(f"ECAPA speaker model preload failed: {e}. Will load on first use.")
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         f1 = pool.submit(_whisper)
         f2 = pool.submit(_speaker)
         f1.result()
         f2.result()
-    logger.info("All ML models preloaded")
+    logger.info("ML model preload complete (check warnings for any failures)")

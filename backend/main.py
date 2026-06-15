@@ -47,9 +47,11 @@ async def lifespan(app: FastAPI):
 
 
 def _preload_ml() -> None:
-    from services.ml_warmup import preload_models
-
-    preload_models()
+    try:
+        from services.ml_warmup import preload_models
+        preload_models()
+    except Exception as e:
+        logger.warning(f"ML model preload failed: {e}. Models will load on first use.")
 
 
 app = FastAPI(
