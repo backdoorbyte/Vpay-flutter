@@ -34,7 +34,7 @@ try:
     print("FACE ROUTER IMPORTED")
 except Exception as e:
     print("FACE ROUTER FAILED:", repr(e))
-    raise
+    face_enroll = None  # Continue without face routing
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vpay")
@@ -44,8 +44,9 @@ logger = logging.getLogger("vpay")
 async def lifespan(app: FastAPI):
     logger.info("Initializing VPay database...")
     await init_db()
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, _preload_ml)
+    # Start ML preload in background (non-blocking) - health endpoint available immediately
+    asyncio.create_task(asyncio.get_event_loop().run_in_executor(None, _preload_ml))
+    logger.info("VPay startup complete - health endpoint ready")
     yield
     await close_db()
     logger.info("VPay shutdown complete.")
@@ -84,7 +85,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(enroll.router, prefix="/enroll", tags=["enrollment"])
-app.include_router(face_enroll.router, prefix="/face", tags=["face-verification"])
+if face_enroll is not None:
+    app.include_router(face_enroll.router, prefix="/face", tags=["face-verification"])
 app.include_router(verify.router, prefix="/verify", tags=["verification"])
 app.include_router(transcribe.router, prefix="/transcribe", tags=["transcription"])
 app.include_router(parse.router, prefix="/parse", tags=["parsing"])
