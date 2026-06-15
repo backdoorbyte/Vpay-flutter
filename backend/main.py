@@ -20,7 +20,6 @@ from routes import (
     challenge,
     contacts,
     enroll,
-    face_enroll,
     parse,
     payment,
     payment_intent,
@@ -30,6 +29,12 @@ from routes import (
     voice_pay,
     wallet,
 )
+try:
+    from routes import face_enroll
+    print("FACE ROUTER IMPORTED")
+except Exception as e:
+    print("FACE ROUTER FAILED:", repr(e))
+    raise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vpay")
