@@ -1,6 +1,6 @@
 # See https://railway.com/deploy/docs/reference/railway-toml
 [build]
-builder = "DOCKERFILE"
+builder = "NIXPACKS"
 
 [deploy]
 healthcheckPath = "/health"
