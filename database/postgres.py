@@ -40,13 +40,16 @@ async def init_postgres() -> asyncpg.Pool:
 
     logger.info(f"Connecting to PostgreSQL...")
 
-    # Supabase requires SSL with specific settings
+    # Supabase requires SSL - use a permissive SSL context to accept their certificate chain
     ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
     _pool = await asyncpg.create_pool(
         database_url,
-    min_size=2,
-    max_size=10,
-    ssl=ssl_context
+        min_size=2,
+        max_size=10,
+        ssl=ssl_context
     )
 
     # Verify connection
