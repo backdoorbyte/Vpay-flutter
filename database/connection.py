@@ -55,9 +55,14 @@ async def init_db() -> None:
         _connection.row_factory = aiosqlite.Row
         await _connection.execute("PRAGMA foreign_keys = ON")
 
-    from database.schema import apply_schema
-    await apply_schema(_connection or _pg_pool)
-    if _connection:
+    if DATABASE_URL:
+        # PostgreSQL
+        from database.postgres_schema import apply_schema as apply_pg_schema
+        await apply_pg_schema(_pg_pool)
+    else:
+        # SQLite
+        from database.schema import apply_schema
+        await apply_schema(_connection)
         await _connection.commit()
 
 
