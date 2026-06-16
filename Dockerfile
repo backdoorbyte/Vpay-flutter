@@ -25,14 +25,15 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/tmp/huggingface
-ENV PRELOAD_ML_MODELS=true
+ENV PRELOAD_ML_MODELS=false
+ENV PORT=${PORT:-10000}
 
-# Expose port (Render will override this)
-EXPOSE 8000
+# Expose port (informational - actual port from PORT env var)
+EXPOSE ${PORT}
 
-# Health check
+# Health check (uses PORT env var)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=5)" || exit 1
+    CMD python -c "import httpx; httpx.get(f'http://localhost:${PORT}/health', timeout=5)" || exit 1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application - use shell form to expand PORT env var
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}

@@ -20,4 +20,4 @@ cmd = "python run.py"
 [variables]
 # Environment variables for ML models
 HF_HOME = "/tmp/huggingface"
-PRELOAD_ML_MODELS = "true"
+PRELOAD_ML_MODELS = "false"

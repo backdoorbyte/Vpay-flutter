@@ -1,8 +1,8 @@
 """
 VPay API — Voice-Based Payment Authentication System.
 
-Run: uvicorn main:app --reload --host 0.0.0.0 --port 8000
-Docs: http://localhost:8000/docs
+Run: uvicorn main:app --host 0.0.0.0 --port $PORT
+Docs: http://localhost:$PORT/docs
 """
 
 from __future__ import annotations

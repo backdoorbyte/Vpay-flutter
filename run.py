@@ -4,8 +4,8 @@
 import os
 import uvicorn
 
-# Get PORT from environment, default to 8000
-port = int(os.environ.get("PORT", 8000))
+# Get PORT from environment, default to 10000 (Render/Railway standard)
+port = int(os.environ.get("PORT", 10000))
 
 if __name__ == "__main__":
     print(f"Starting VPay backend on port {port}...")

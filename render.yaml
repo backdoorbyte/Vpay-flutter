@@ -16,7 +16,7 @@ services:
       - key: HF_HOME
         value: /tmp/huggingface
       - key: PRELOAD_ML_MODELS
-        value: "true"
+        value: "false"
       - key: PYTHON_VERSION
         value: 3.12.0
       - key: DATABASE_URL
