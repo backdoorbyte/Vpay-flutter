@@ -22,7 +22,7 @@ After deployment, you'll need to update your Flutter app to point to the Railway
 
 ```dart
 // For production (Railway)
-static const String baseUrl = 'https://vpay-flutter-production.up.railway.app';
+static const String baseUrl = 'https://your-app.railway.app';
 
 // For local development
 // static const String baseUrl = 'http://10.0.2.2:8000'; // Android Emulator
@@ -91,7 +91,7 @@ In your Railway project dashboard:
 | `DATABASE_URL` | (Railway auto-provides this when you add PostgreSQL) |
 | `SUPABASE_URL` | `https://qmuwykzbkcxabljiezsn.supabase.co` |
 | `SUPABASE_KEY` | Your Supabase anon key |
-| `CORS_ORIGINS` | `["https://vpay-flutter-production.up.railway.app","http://localhost:5173"]` |
+| `CORS_ORIGINS` | `["https://your-app.railway.app","http://localhost:5173"]` |
 | `HF_HOME` | `/tmp/huggingface` |
 | `PORT` | (Auto-set by Railway, usually 8000) |
 
@@ -110,7 +110,7 @@ In your Railway project dashboard:
 Once deployed, test your API:
 
 ```bash
-curl https://vpay-flutter-production.up.railway.app/health
+curl https://your-app.railway.app/health
 ```
 
 Expected response:
@@ -121,7 +121,7 @@ Expected response:
 ### 4.2 Test Wallet Endpoint
 
 ```bash
-curl https://vpay-flutter-production.up.railway.app/wallet
+curl https://your-app.railway.app/wallet
 ```
 
 ---
@@ -135,7 +135,7 @@ Update your Flutter app's API URL:
 ```dart
 class ApiConstants {
   // Production (Railway)
-  static const String baseUrl = 'https://vpay-flutter-production.up.railway.app';
+  static const String baseUrl = 'https://your-app.railway.app';
   
   // Development (uncomment for local testing)
   // static const String baseUrl = 'http://10.0.2.2:8000';
@@ -231,7 +231,7 @@ ML models require ~2GB RAM. Railway's free tier may not be enough. Consider:
 Your VPay backend is now running on Railway! 
 
 **Next steps:**
-1. Test all endpoints via the Swagger UI: `https://vpay-flutter-production.up.railway.app/docs`
+1. Test all endpoints via the Swagger UI: `https://your-app.railway.app/docs`
 2. Update your Flutter app's base URL
 3. Test the complete flow (login → wallet → voice pay)
 

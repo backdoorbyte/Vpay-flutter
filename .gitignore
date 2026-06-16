@@ -41,3 +41,6 @@ logs/
 
 # Claude
 .claude/
+
+# ML model checkpoints (symlinks to local cache - models downloaded at runtime)
+*.ckpt
