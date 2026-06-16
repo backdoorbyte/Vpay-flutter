@@ -19,10 +19,6 @@ services:
         value: "true"
       - key: PYTHON_VERSION
         value: 3.12.0
-  - type: pserv
-    name: vpay-db
-    plan: starter
-    env: postgresql
-    region: oregon
-    database:
-      name: vpay
+      - key: DATABASE_URL
+        sync: false
+        description: "Set to your Supabase PostgreSQL connection string"
