@@ -6,6 +6,7 @@ import asyncio
 import asyncpg
 import os
 import logging
+import ssl
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +41,12 @@ async def init_postgres() -> asyncpg.Pool:
     logger.info(f"Connecting to PostgreSQL...")
 
     # Supabase requires SSL with specific settings
+    ssl_context = ssl.create_default_context()
     _pool = await asyncpg.create_pool(
         database_url,
-        min_size=2,
-        max_size=10,
-        ssl={'require': True}
+    min_size=2,
+    max_size=10,
+    ssl=ssl_context
     )
 
     # Verify connection
