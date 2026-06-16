@@ -1,17 +1,17 @@
-# Dockerfile for VPay Backend
-# Use this if you prefer Docker over nixpacks on Railway
+# Dockerfile for VPay Backend on Render
+# Render uses Docker for deployment
 
-FROM python:3.11-slim
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    libsndfile1 \
-    libsndfile-dev \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsndfile1 \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -22,20 +22,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Make start script executable
-RUN chmod +x start.sh
-
 # Set environment variables
+ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/tmp/huggingface
 ENV PRELOAD_ML_MODELS=true
-ENV PYTHONUNBUFFERED=1
 
-# Expose port
+# Expose port (Render will override this)
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=5)" || exit 1
 
-# Run the application via Python entry point (handles PORT env var properly)
-CMD ["python", "run.py"]
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

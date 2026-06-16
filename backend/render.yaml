@@ -1,0 +1,28 @@
+# Render Blueprint configuration for VPay Backend
+# Deploy this file to Render: https://render.com/blueprints
+
+services:
+  - type: web
+    name: vpay-backend
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: HF_HOME
+        value: /tmp/huggingface
+      - key: PRELOAD_ML_MODELS
+        value: "true"
+      - key: PYTHON_VERSION
+        value: 3.12.0
+  - type: pserv
+    name: vpay-db
+    plan: starter
+    env: postgresql
+    region: oregon
+    database:
+      name: vpay
