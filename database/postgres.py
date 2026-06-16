@@ -39,24 +39,13 @@ async def init_postgres() -> asyncpg.Pool:
 
     logger.info(f"Connecting to PostgreSQL...")
 
-    # Supabase/Render PostgreSQL requires SSL
-    try:
-        _pool = await asyncpg.create_pool(
-            database_url,
-            min_size=2,
-            max_size=10,
-            ssl=True  # Supabase requires SSL
-        )
-    except Exception as e:
-        logger.error(f"Failed to connect with SSL: {e}")
-        # Try without SSL as fallback (only for local dev)
-        logger.info("Retrying without SSL...")
-        _pool = await asyncpg.create_pool(
-            database_url,
-            min_size=2,
-            max_size=10,
-            ssl=False
-        )
+    # Supabase requires SSL with specific settings
+    _pool = await asyncpg.create_pool(
+        database_url,
+        min_size=2,
+        max_size=10,
+        ssl={'require': True}
+    )
 
     # Verify connection
     async with _pool.acquire() as conn:
