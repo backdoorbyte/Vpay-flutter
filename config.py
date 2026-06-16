@@ -11,7 +11,8 @@ WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 WHISPER_BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "5"))
 # Kept at 1 for ultra-fast confirmation, but best_of=2 compensates slightly.
 WHISPER_BEAM_SIZE_FAST = int(os.getenv("WHISPER_BEAM_SIZE_FAST", "1"))
-PRELOAD_ML_MODELS = os.getenv("PRELOAD_ML_MODELS", "true").lower() in ("1", "true", "yes")
+# Disabled by default - models load on first request to avoid OOM on Railway
+PRELOAD_ML_MODELS = os.getenv("PRELOAD_ML_MODELS", "false").lower() in ("1", "true", "yes")
 # Cap decoded audio length to speed up STT (seconds)
 MAX_AUDIO_SECONDS_PAY = float(os.getenv("MAX_AUDIO_SECONDS_PAY", "30"))
 MAX_AUDIO_SECONDS_CONFIRM = float(os.getenv("MAX_AUDIO_SECONDS_CONFIRM", "12"))

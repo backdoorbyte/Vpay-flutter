@@ -18,15 +18,17 @@ _model = None
 def _get_model():
     global _model
     if _model is not None:
+        logger.info("Whisper model already loaded, reusing cached instance")
         return _model
     from faster_whisper import WhisperModel
 
-    logger.info("Loading Faster-Whisper model '%s'...", WHISPER_MODEL_SIZE)
+    logger.info("Loading Faster-Whisper model '%s' (first request - this may take 30-60 seconds)...", WHISPER_MODEL_SIZE)
     _model = WhisperModel(
         WHISPER_MODEL_SIZE,
         device="cuda" if _cuda_available() else "cpu",
         compute_type="float16" if _cuda_available() else "int8",
     )
+    logger.info("Whisper model loaded successfully")
     return _model
 
 

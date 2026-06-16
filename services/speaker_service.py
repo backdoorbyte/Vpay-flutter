@@ -26,15 +26,17 @@ def _get_classifier():
     """Load ECAPA-TDNN once."""
     global _classifier
     if _classifier is not None:
+        logger.info("ECAPA classifier already loaded, reusing cached instance")
         return _classifier
     from speechbrain.inference.speaker import EncoderClassifier
 
-    logger.info("Loading ECAPA-TDNN (first request may take a minute)...")
+    logger.info("Loading ECAPA-TDNN speaker model (first request - this may take 30-60 seconds)...")
     _classifier = EncoderClassifier.from_hparams(
         source="speechbrain/spkrec-ecapa-voxceleb",
         savedir="pretrained_models/spkrec-ecapa-voxceleb",
         run_opts={"device": "cuda" if torch.cuda.is_available() else "cpu"},
     )
+    logger.info("ECAPA speaker model loaded successfully")
     return _classifier
 
 

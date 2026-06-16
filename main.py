@@ -7,7 +7,6 @@ Docs: http://localhost:8000/docs
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -40,30 +39,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vpay")
 
 
-async def _preload_ml_async() -> None:
-    """Async wrapper for ML preload to run in background task."""
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, _preload_ml)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing VPay database...")
     await init_db()
-    # Start ML preload in background (non-blocking) - health endpoint available immediately
-    asyncio.create_task(_preload_ml_async())
     logger.info("VPay startup complete - health endpoint ready")
     yield
     await close_db()
     logger.info("VPay shutdown complete.")
-
-
-def _preload_ml() -> None:
-    try:
-        from services.ml_warmup import preload_models
-        preload_models()
-    except Exception as e:
-        logger.warning(f"ML model preload failed: {e}. Models will load on first use.")
 
 
 app = FastAPI(
@@ -108,5 +91,6 @@ app.include_router(qr.router, prefix="/qr", tags=["qr"])
 @app.get("/", tags=["health"])
 @app.get("/health", tags=["health"])
 async def health():
-    """Health check endpoint for Railway"""
+    """Health check endpoint for Railway - responds immediately without ML dependencies."""
+    logger.debug("Health check requested")
     return {"status": "ok", "service": "VPay"}
