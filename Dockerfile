@@ -1,16 +1,16 @@
 # Dockerfile for VPay Backend on Render
 # Render uses Docker for deployment
 
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
-    libgl1-mesa-glx \
+    libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
