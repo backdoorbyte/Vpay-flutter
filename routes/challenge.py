@@ -4,11 +4,14 @@ Challenge-response endpoints for secure voice payments.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
-
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from typing import Union
 
 import aiosqlite
+import asyncpg
+from fastapi import APIRouter, Depends, File, Query, UploadFile
+
 from config import PHRASE_MATCH_MIN_RATIO
 from database.connection import get_db
 from models.schemas import (
@@ -33,7 +36,7 @@ _verified_challenges: dict[int, float] = {}
 @router.post("", response_model=ChallengeResponse)
 async def create_challenge(
     language: LanguageCode = Query(LanguageCode.en),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """Generate a random phrase the user must repeat before payment."""
     cid, phrase, ttl = await challenge_service.create_challenge(
@@ -49,7 +52,7 @@ async def verify_challenge(
     challenge_id: int = Query(...),
     language: LanguageCode = Query(LanguageCode.en),
     audio: UploadFile = File(...),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """
     Verify user repeated the challenge phrase and matches enrolled speaker.
@@ -65,11 +68,19 @@ async def verify_challenge(
             message="Complete voice enrollment first",
         )
 
-    cursor = await db.execute(
-        "SELECT phrase, expires_at, used FROM challenges WHERE id = ? AND user_id = ?",
-        (challenge_id, DEFAULT_USER_ID),
-    )
-    row = await cursor.fetchone()
+    if isinstance(db, asyncpg.Pool):
+        async with db.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT phrase, expires_at, used FROM challenges WHERE id = $1 AND user_id = $2",
+                challenge_id, DEFAULT_USER_ID,
+            )
+    else:
+        cursor = await db.execute(
+            "SELECT phrase, expires_at, used FROM challenges WHERE id = ? AND user_id = ?",
+            (challenge_id, DEFAULT_USER_ID),
+        )
+        row = await cursor.fetchone()
+
     if not row:
         return ChallengeVerifyResponse(
             verified=False,
@@ -87,9 +98,7 @@ async def verify_challenge(
             message="Challenge already used",
         )
 
-    from datetime import datetime
-
-    if datetime.utcnow() > datetime.fromisoformat(row["expires_at"]):
+    if datetime.now(timezone.utc) > datetime.fromisoformat(row["expires_at"]):
         return ChallengeVerifyResponse(
             verified=False,
             score=0.0,

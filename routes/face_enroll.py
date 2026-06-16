@@ -6,8 +6,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Union
+
 import aiosqlite
+import asyncpg
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+
 from database.connection import get_db
 from models.schemas import EnrollResponse
 from services import face_verification_service
@@ -22,7 +26,7 @@ DEFAULT_USER_ID = 1
 @router.post("/enroll", response_model=EnrollResponse)
 async def enroll_face(
     image: UploadFile = File(..., description="Face image for enrollment"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """Enroll user's face for verification."""
     temp_path: Path | None = None
@@ -53,19 +57,34 @@ async def enroll_face(
             # Persist to DB
             embedding = face_verification_service.get_cached_embedding(DEFAULT_USER_ID)
             if embedding:
-                await db.execute(
-                    """
-                    INSERT INTO face_embeddings (user_id, embedding_json)
-                    VALUES (?, ?)
-                    ON CONFLICT(user_id) DO UPDATE SET embedding_json = ?, enrolled_at = datetime('now')
-                    """,
-                    (DEFAULT_USER_ID, str(embedding), str(embedding)),
-                )
-                await db.execute(
-                    "UPDATE users SET is_face_enrolled = 1 WHERE id = ?",
-                    (DEFAULT_USER_ID,),
-                )
-                await db.commit()
+                if isinstance(db, asyncpg.Pool):
+                    async with db.acquire() as conn:
+                        await conn.execute(
+                            """
+                            INSERT INTO face_embeddings (user_id, embedding_json)
+                            VALUES ($1, $2)
+                            ON CONFLICT(user_id) DO UPDATE SET embedding_json = $2, enrolled_at = NOW()
+                            """,
+                            DEFAULT_USER_ID, str(embedding),
+                        )
+                        await conn.execute(
+                            "UPDATE users SET is_face_enrolled = 1 WHERE id = $1",
+                            DEFAULT_USER_ID,
+                        )
+                else:
+                    await db.execute(
+                        """
+                        INSERT INTO face_embeddings (user_id, embedding_json)
+                        VALUES (?, ?)
+                        ON CONFLICT(user_id) DO UPDATE SET embedding_json = ?, enrolled_at = datetime('now')
+                        """,
+                        (DEFAULT_USER_ID, str(embedding), str(embedding)),
+                    )
+                    await db.execute(
+                        "UPDATE users SET is_face_enrolled = 1 WHERE id = ?",
+                        (DEFAULT_USER_ID,),
+                    )
+                    await db.commit()
                 logger.info(f"Face enrollment persisted to DB for user {DEFAULT_USER_ID}")
 
             return EnrollResponse(
@@ -100,20 +119,28 @@ async def enroll_face(
 @router.post("/verify")
 async def verify_face(
     image: UploadFile = File(..., description="Face image for verification"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """Verify user's face against enrolled embedding."""
     temp_path: Path | None = None
     try:
         # Load enrolled embedding from DB if not in cache
-        cursor = await db.execute(
-            "SELECT embedding_json FROM face_embeddings WHERE user_id = ?",
-            (DEFAULT_USER_ID,),
-        )
-        row = await cursor.fetchone()
-        if row and row[0]:
+        if isinstance(db, asyncpg.Pool):
+            async with db.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT embedding_json FROM face_embeddings WHERE user_id = $1",
+                    DEFAULT_USER_ID,
+                )
+        else:
+            cursor = await db.execute(
+                "SELECT embedding_json FROM face_embeddings WHERE user_id = ?",
+                (DEFAULT_USER_ID,),
+            )
+            row = await cursor.fetchone()
+
+        if row and row["embedding_json"]:
             import ast
-            embedding = ast.literal_eval(row[0])
+            embedding = ast.literal_eval(row["embedding_json"])
             face_verification_service.load_embedding(DEFAULT_USER_ID, embedding)
 
         # Save probe image
@@ -140,14 +167,22 @@ async def verify_face(
 
 
 @router.get("/status")
-async def face_enrollment_status(db: aiosqlite.Connection = Depends(get_db)):
+async def face_enrollment_status(db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db)):
     """Check if user has enrolled face."""
-    cursor = await db.execute(
-        "SELECT is_face_enrolled FROM users WHERE id = ?",
-        (DEFAULT_USER_ID,),
-    )
-    row = await cursor.fetchone()
-    is_enrolled = bool(row and row[0])
+    if isinstance(db, asyncpg.Pool):
+        async with db.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT is_face_enrolled FROM users WHERE id = $1",
+                DEFAULT_USER_ID,
+            )
+    else:
+        cursor = await db.execute(
+            "SELECT is_face_enrolled FROM users WHERE id = ?",
+            (DEFAULT_USER_ID,),
+        )
+        row = await cursor.fetchone()
+
+    is_enrolled = bool(row and row["is_face_enrolled"])
 
     return {
         "is_face_enrolled": is_enrolled,
@@ -155,10 +190,15 @@ async def face_enrollment_status(db: aiosqlite.Connection = Depends(get_db)):
 
 
 @router.delete("/reset")
-async def reset_face_enrollment(db: aiosqlite.Connection = Depends(get_db)):
+async def reset_face_enrollment(db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db)):
     """Clear face enrollment data."""
     face_verification_service.clear_embedding(DEFAULT_USER_ID)
-    await db.execute("DELETE FROM face_embeddings WHERE user_id = ?", (DEFAULT_USER_ID,))
-    await db.execute("UPDATE users SET is_face_enrolled = 0 WHERE id = ?", (DEFAULT_USER_ID,))
-    await db.commit()
+    if isinstance(db, asyncpg.Pool):
+        async with db.acquire() as conn:
+            await conn.execute("DELETE FROM face_embeddings WHERE user_id = $1", DEFAULT_USER_ID)
+            await conn.execute("UPDATE users SET is_face_enrolled = 0 WHERE id = $1", DEFAULT_USER_ID)
+    else:
+        await db.execute("DELETE FROM face_embeddings WHERE user_id = ?", (DEFAULT_USER_ID,))
+        await db.execute("UPDATE users SET is_face_enrolled = 0 WHERE id = ?", (DEFAULT_USER_ID,))
+        await db.commit()
     return {"success": True, "message": "Face enrollment reset"}

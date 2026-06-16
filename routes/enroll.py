@@ -6,11 +6,13 @@ Supports one-shot long recording with chunking.
 from __future__ import annotations
 
 from pathlib import Path
-
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from typing import Union
 
 import aiosqlite
+import asyncpg
 import logging
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+
 from config import ENROLLMENT_CHUNK_DURATION_SEC
 from database.connection import get_db
 from models.schemas import EnrollResponse, EnrollStatusResponse
@@ -28,32 +30,32 @@ DEFAULT_USER_ID = 1
 async def enroll_voice_sample(
     audio: UploadFile = File(..., description="Voice sample (webm/wav)"),
     mode: str = Form("single", description="Enrollment mode: 'single' (one-shot) or 'multi' (traditional)"),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """
     Upload enrollment sample(s).
-    
+
     - mode='single': One long recording (45-60s) that gets chunked automatically
     - mode='multi': Traditional multiple short samples
-    
+
     After 20 samples, mean embedding is stored in DB.
     """
     wav_path: Path | None = None
     chunk_paths: list[Path] = []
-    
+
     try:
         wav_path = await save_upload_to_wav(audio)
-        
+
         if mode == "single":
             # One-shot enrollment: chunk the long recording
             chunk_paths = chunk_audio(wav_path, ENROLLMENT_CHUNK_DURATION_SEC)
-            
+
             # Extract embeddings from all chunks
             embeddings = []
             for chunk_path in chunk_paths:
                 emb = extract_embedding(chunk_path)
                 embeddings.append(emb)
-            
+
             logger.info(f"Extracted {len(embeddings)} embeddings from chunks")
 
             # Add all embeddings at once
@@ -63,17 +65,16 @@ async def enroll_voice_sample(
                 count, ready = enrollment_service.add_sample(DEFAULT_USER_ID, emb)
 
             logger.info(f"Final count: {count}, ready: {ready}, required: {enrollment_service.REQUIRED_SAMPLES}")
-            
+
         else:
             # Traditional multi-sample enrollment
             embedding = extract_embedding(wav_path)
             count, ready = enrollment_service.add_sample(DEFAULT_USER_ID, embedding)
-        
+
         # Finalize enrollment if threshold reached
         enrolled = False
         if ready:
             enrolled = await enrollment_service.finalize_enrollment(db, DEFAULT_USER_ID)
-            await db.commit()
 
         return EnrollResponse(
             success=True,
@@ -103,15 +104,14 @@ async def enroll_voice_sample(
 
 
 @router.get("/status", response_model=EnrollStatusResponse)
-async def enrollment_status(db: aiosqlite.Connection = Depends(get_db)):
+async def enrollment_status(db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db)):
     """Current enrollment progress and whether voice profile exists."""
     status = await enrollment_service.get_enrollment_status(db, DEFAULT_USER_ID)
     return EnrollStatusResponse(**status)
 
 
 @router.delete("/reset")
-async def reset_enrollment(db: aiosqlite.Connection = Depends(get_db)):
+async def reset_enrollment(db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db)):
     """Clear in-memory buffer and stored embedding for re-enrollment."""
     await enrollment_service.clear_stored_enrollment(db, DEFAULT_USER_ID)
-    await db.commit()
     return {"success": True, "message": "Enrollment reset; record 20 new samples"}

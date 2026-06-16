@@ -7,10 +7,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from typing import Union
 
 import aiosqlite
+import asyncpg
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+
 from config import MAX_AUDIO_SECONDS_PAY, PARSE_MIN_CONFIDENCE
 from database.connection import get_db
 from services.display_formatter import format_confirm_prompt, format_payment_display
@@ -45,7 +47,7 @@ def _finalize_confidence(parsed):
 async def voice_pay_parse(
     audio: UploadFile = File(...),
     language: str | None = None,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """Record payment command → STT → parse → resolve contact / spoken UPI."""
     wav_path: Path | None = None
@@ -56,14 +58,14 @@ async def voice_pay_parse(
             transcribe_audio, wav_path, language
         )
         logger.info(f"Transcribed Text: '{text}' (Language: {detected})")
-        
+
         command = isolate_latest_command(text)
         logger.info(f"Isolated Command: '{command}'")
-        
+
         parsed = parse_and_resolve_text(text)
         parsed = await resolve_recipient(db, text, parsed, DEFAULT_USER_ID)
         parsed = parsed.model_copy(update={"confidence": _finalize_confidence(parsed)})
-        
+
         logger.info(f"Parsed Result: {parsed.model_dump()}")
 
         display_text = command

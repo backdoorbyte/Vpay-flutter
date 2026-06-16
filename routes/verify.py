@@ -5,10 +5,12 @@ POST /verify — speaker verification against enrolled ECAPA embedding.
 from __future__ import annotations
 
 from pathlib import Path
-
-from fastapi import APIRouter, Depends, File, UploadFile
+from typing import Union
 
 import aiosqlite
+import asyncpg
+from fastapi import APIRouter, Depends, File, UploadFile
+
 from database.connection import get_db
 from models.schemas import VerifyResponse
 from services import enrollment_service
@@ -23,7 +25,7 @@ DEFAULT_USER_ID = 1
 @router.post("", response_model=VerifyResponse)
 async def verify_speaker(
     audio: UploadFile = File(...),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """
     Compare new voice sample to enrolled embedding.

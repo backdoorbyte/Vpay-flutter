@@ -4,9 +4,12 @@ POST /pay — mock payment after voice confirmation + speaker verification.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Union
 
 import aiosqlite
+import asyncpg
+from fastapi import APIRouter, Depends, HTTPException
+
 from config import VERIFY_THRESHOLD
 from database.connection import get_db
 from models.schemas import PaymentRequest, PaymentResponse
@@ -24,7 +27,7 @@ DEFAULT_USER_ID = 1
 @router.post("", response_model=PaymentResponse)
 async def pay(
     body: PaymentRequest,
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """Deduct wallet balance after successful voice confirmation."""
     if body.verification_score < VERIFY_THRESHOLD:
@@ -58,7 +61,7 @@ async def pay(
         stored_score = challenge_routes.pop_verified_score(body.challenge_id)
         if stored_score is None:
             raise HTTPException(status_code=403, detail="Challenge verification expired")
-        
+
         # Dynamic limit removed — all verified payments are allowed
 
         ok, expected_phrase = await challenge_service.validate_challenge(

@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from typing import Union
 
 import aiosqlite
+import asyncpg
+import numpy as np
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+
 from config import (
     CHALLENGE_TTL_SECONDS,
     MAX_AUDIO_SECONDS_CONFIRM,
@@ -68,7 +71,7 @@ async def create_payment_intent(body: PaymentIntentRequest):
         "display_text": display,
         "confirm_prompt": prompt,
         "language": lang,
-        "expires_at": datetime.utcnow() + timedelta(seconds=CHALLENGE_TTL_SECONDS),
+        "expires_at": datetime.now(timezone.utc) + timedelta(seconds=CHALLENGE_TTL_SECONDS),
         "used": False,
     }
 
@@ -96,7 +99,7 @@ async def _verify_audio_async(
 async def verify_payment_confirmation(
     intent_id: int = Query(...),
     audio: UploadFile = File(...),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: Union[aiosqlite.Connection, asyncpg.Pool] = Depends(get_db),
 ):
     """Verify voice confirm + complete payment in one request when successful."""
     intent = _intents.get(intent_id)
@@ -123,7 +126,7 @@ async def verify_payment_confirmation(
             language=lang,
         )
 
-    if datetime.utcnow() > intent["expires_at"]:
+    if datetime.now(timezone.utc) > intent["expires_at"]:
         return ConfirmVerifyResponse(
             verified=False,
             score=0.0,
@@ -181,8 +184,6 @@ async def verify_payment_confirmation(
 
         # Refine embedding
         refined = await enrollment_service.refine_embedding(db, DEFAULT_USER_ID, probe_emb, score)
-        if refined:
-            await db.commit()
 
         mark_intent_used(intent_id)
         success, msg, new_balance, tx_id = await payment_service.process_payment(

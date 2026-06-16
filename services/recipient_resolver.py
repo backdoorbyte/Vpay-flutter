@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import re
+from typing import Union
 
 import aiosqlite
+import asyncpg
 
 from models.schemas import ParsedCommand
 from services import contact_service
@@ -19,7 +21,7 @@ from services.upi_utils import is_valid_upi, normalize_upi
 
 
 async def resolve_recipient(
-    db: aiosqlite.Connection,
+    db: Union[aiosqlite.Connection, asyncpg.Pool],
     text: str,
     parsed: ParsedCommand,
     user_id: int = 1,
