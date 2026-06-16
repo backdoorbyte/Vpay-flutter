@@ -40,12 +40,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vpay")
 
 
+async def _preload_ml_async() -> None:
+    """Async wrapper for ML preload to run in background task."""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, _preload_ml)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing VPay database...")
     await init_db()
     # Start ML preload in background (non-blocking) - health endpoint available immediately
-    asyncio.create_task(asyncio.get_event_loop().run_in_executor(None, _preload_ml))
+    asyncio.create_task(_preload_ml_async())
     logger.info("VPay startup complete - health endpoint ready")
     yield
     await close_db()
