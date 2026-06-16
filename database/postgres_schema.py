@@ -4,7 +4,7 @@ PostgreSQL schema for users, voice embeddings, challenges, and transactions.
 
 import asyncpg
 
-SCHEMA_SQL = """
+CREATE_TABLES_SQL = """
 -- Single demo user; extend with auth in production
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -64,7 +64,9 @@ CREATE TABLE IF NOT EXISTS contacts (
     phone TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+"""
 
+CREATE_INDEXES_SQL = """
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_user ON contacts(user_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(user_id, name_normalized);
@@ -73,11 +75,12 @@ CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(user_id, name_normalize
 
 async def apply_schema(pool: asyncpg.Pool) -> None:
     """Execute DDL and seed demo user if missing."""
-    # Execute schema (asyncpg doesn't support executescript, so we split by semicolons)
-    statements = [stmt.strip() for stmt in SCHEMA_SQL.split(';') if stmt.strip()]
     async with pool.acquire() as conn:
-        for stmt in statements:
-            await conn.execute(stmt)
+        # Execute table creation
+        await conn.execute(CREATE_TABLES_SQL)
+
+        # Execute indexes
+        await conn.execute(CREATE_INDEXES_SQL)
 
         # Check if demo user exists
         row = await conn.fetchrow("SELECT COUNT(*) as c FROM users")
