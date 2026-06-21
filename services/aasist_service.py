@@ -55,7 +55,7 @@ def _get_model():
         return None, None
 
     # Check for required files
-    config_path = aasist_dir / "config.yaml"  # Actually JSON
+    config_path = aasist_dir / "config.json"
     weights_path = aasist_dir / "weights.pt"
 
     if not config_path.exists():
