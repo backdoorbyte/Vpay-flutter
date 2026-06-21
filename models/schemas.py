@@ -162,7 +162,10 @@ class PaymentIntentResponse(BaseModel):
 class ConfirmVerifyResponse(BaseModel):
     verified: bool
     score: float
+    liveness_score: float = Field(default=0.0, description="AASIST bonafide probability (0-1)")
+    liveness_verified: bool = Field(default=False, description="Did liveness check pass?")
     threshold: float
+    liveness_threshold: float = Field(default=0.5, description="AASIST liveness threshold")
     limit: float = 0.0
     refined: bool = False
     transcribed_text: str = ""

@@ -27,6 +27,7 @@ from models.schemas import (
     PaymentIntentResponse,
 )
 from services import enrollment_service, payment_service
+from services.aasist_service import check_liveness, get_liveness_threshold
 from services.confirm_parser import is_payment_confirmation
 from services.display_formatter import format_confirm_prompt, format_payment_display
 from services.speaker_service import get_threshold, verify_against_enrolled
@@ -86,13 +87,20 @@ async def create_payment_intent(body: PaymentIntentRequest):
 
 async def _verify_audio_async(
     wav_path: Path, enrolled, language: str = None
-) -> tuple[str, bool, bool, float, np.ndarray]:
-    (text, _), (speaker_ok, score, probe_emb) = await asyncio.gather(
-        asyncio.to_thread(transcribe_audio, wav_path, language, fast=True),
+) -> tuple[str, bool, bool, bool, float, float, np.ndarray]:
+    """Verify audio: liveness + speaker + transcription in parallel."""
+    liveness_result, speaker_result, stt_result = await asyncio.gather(
+        asyncio.to_thread(check_liveness, wav_path),
         asyncio.to_thread(verify_against_enrolled, wav_path, enrolled, return_embedding=True),
+        asyncio.to_thread(transcribe_audio, wav_path, language, fast=True),
     )
+
+    liveness_ok, liveness_score = liveness_result
+    speaker_ok, speaker_score, probe_emb = speaker_result
+    text, _ = stt_result
+
     confirm_ok, _ = is_payment_confirmation(text)
-    return text, confirm_ok, speaker_ok, score, probe_emb
+    return text, confirm_ok, speaker_ok, liveness_ok, speaker_score, liveness_score, probe_emb
 
 
 @router.post("/confirm", response_model=ConfirmVerifyResponse)
@@ -154,27 +162,33 @@ async def verify_payment_confirmation(
         wav_path = await save_upload_to_wav(
             audio, max_seconds=MAX_AUDIO_SECONDS_CONFIRM
         )
-        text, confirm_ok, speaker_ok, score, probe_emb = await _verify_audio_async(
+        text, confirm_ok, speaker_ok, liveness_ok, speaker_score, liveness_score, probe_emb = await _verify_audio_async(
             wav_path, enrolled, None  # Auto-detect language (works for Hinglish)
         )
         logger.info(
-            "[CONFIRM] transcript='%s' confirm_ok=%s speaker_ok=%s score=%.4f",
-            text, confirm_ok, speaker_ok, score
+            "[CONFIRM] transcript='%s' confirm_ok=%s speaker_ok=%s liveness_ok=%s speaker_score=%.4f liveness_score=%.4f",
+            text, confirm_ok, speaker_ok, liveness_ok, speaker_score, liveness_score
         )
-        verified = confirm_ok and speaker_ok and score >= VERIFY_THRESHOLD
+
+        verified = confirm_ok and speaker_ok and liveness_ok and speaker_score >= VERIFY_THRESHOLD
 
         if not verified:
-            reason = "confirm_phrase" if not confirm_ok else "speaker"
-            logger.info("[CONFIRM FAIL] reason=%s confirm_ok=%s speaker_ok=%s score=%.4f", reason, confirm_ok, speaker_ok, score)
+            reason = "confirm_phrase" if not confirm_ok else "speaker" if not speaker_ok else "liveness"
+            logger.info("[CONFIRM FAIL] reason=%s confirm_ok=%s speaker_ok=%s liveness_ok=%s speaker_score=%.4f liveness_score=%.4f", reason, confirm_ok, speaker_ok, liveness_ok, speaker_score, liveness_score)
             msg_parts = []
             if not confirm_ok:
                 msg_parts.append('Say "yes, confirm the payment"')
             if not speaker_ok:
                 msg_parts.append("Speaker not recognized")
+            if not liveness_ok:
+                msg_parts.append("Liveness check failed - possible spoof/replay attack")
             return ConfirmVerifyResponse(
                 verified=False,
-                score=round(score, 4),
+                score=round(speaker_score, 4),
+                liveness_score=round(liveness_score, 4),
+                liveness_verified=liveness_ok,
                 threshold=get_threshold(),
+                liveness_threshold=get_liveness_threshold(),
                 limit=0.0,
                 transcribed_text=text,
                 message="; ".join(msg_parts) or "Confirmation failed",
@@ -183,7 +197,7 @@ async def verify_payment_confirmation(
             )
 
         # Refine embedding
-        refined = await enrollment_service.refine_embedding(db, DEFAULT_USER_ID, probe_emb, score)
+        refined = await enrollment_service.refine_embedding(db, DEFAULT_USER_ID, probe_emb, speaker_score)
 
         mark_intent_used(intent_id)
         success, msg, new_balance, tx_id = await payment_service.process_payment(
@@ -193,15 +207,18 @@ async def verify_payment_confirmation(
             intent["upi_id"],
             intent["amount"],
             intent["note"],
-            score,
+            speaker_score,
         )
         logger.info("[PAYMENT] success=%s msg=%s new_balance=%s tx_id=%s", success, msg, new_balance, tx_id)
         if not success:
             logger.info("[CONFIRM FAIL] reason=process_payment_failed msg=%s", msg)
             return ConfirmVerifyResponse(
                 verified=False,
-                score=round(score, 4),
+                score=round(speaker_score, 4),
+                liveness_score=round(liveness_score, 4),
+                liveness_verified=liveness_ok,
                 threshold=get_threshold(),
+                liveness_threshold=get_liveness_threshold(),
                 limit=0.0,
                 transcribed_text=text,
                 message=msg,
@@ -211,12 +228,15 @@ async def verify_payment_confirmation(
 
         response = ConfirmVerifyResponse(
             verified=True,
-            score=round(score, 4),
+            score=round(speaker_score, 4),
+            liveness_score=round(liveness_score, 4),
+            liveness_verified=liveness_ok,
             threshold=get_threshold(),
+            liveness_threshold=get_liveness_threshold(),
             limit=0.0,
             refined=refined,
             transcribed_text=text,
-            message=f"Payment confirmed (Confidence: {round(score*100)}%)",
+            message=f"Payment confirmed (Confidence: {round(speaker_score*100)}%)",
             payment_completed=True,
             new_balance=new_balance,
             transaction_id=tx_id,
@@ -230,7 +250,10 @@ async def verify_payment_confirmation(
         return ConfirmVerifyResponse(
             verified=False,
             score=0.0,
+            liveness_score=0.0,
+            liveness_verified=False,
             threshold=get_threshold(),
+            liveness_threshold=get_liveness_threshold(),
             transcribed_text="",
             message=str(e),
             response_text="Payment declined",

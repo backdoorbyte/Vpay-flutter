@@ -20,5 +20,8 @@ CHALLENGE_TTL_SECONDS = int(os.getenv("CHALLENGE_TTL_SECONDS", "120"))
 PARSE_MIN_CONFIDENCE = float(os.getenv("PARSE_MIN_CONFIDENCE", "0.5"))
 PHRASE_MATCH_MIN_RATIO = float(os.getenv("PHRASE_MATCH_MIN_RATIO", "0.55"))
 
+# AASIST anti-spoofing threshold (higher = stricter spoof detection)
+LIVENESS_THRESHOLD = float(os.getenv("LIVENESS_THRESHOLD", "0.5"))
+
 # One-shot enrollment: chunk duration for splitting long recordings
 ENROLLMENT_CHUNK_DURATION_SEC = float(os.getenv("ENROLLMENT_CHUNK_DURATION_SEC", "3.0"))
