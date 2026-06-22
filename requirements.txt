@@ -1,5 +1,5 @@
 # VPay Backend Dependencies
-# Updated: TensorFlow 2.18 for Python 3.12 support
+# Python 3.12 compatible versions
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20
@@ -23,5 +23,5 @@ opencv-python-headless==4.10.0.84
 deepface==0.0.90
 tf-keras>=2.15.0
 tensorflow==2.18.1
-# AASIST anti-spoofing dependencies
 transformers>=4.35.0
+# AASIST anti-spoofing
