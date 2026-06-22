@@ -33,9 +33,9 @@ ENV TF_USE_LEGACY_KERAS=1
 # Expose port
 EXPOSE 10000
 
-# Health check using curl
+# Health check using curl (uses PORT env var, defaults to 10000)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:10000/health || exit 1
+    CMD sh -c 'curl -f http://localhost:${PORT:-10000}/health || exit 1'
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Run the application (Railway sets PORT env var at runtime)
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]
