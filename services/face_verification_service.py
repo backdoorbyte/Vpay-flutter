@@ -7,9 +7,13 @@ from __future__ import annotations
 
 import logging
 import json
+import os
 from pathlib import Path
 from typing import Optional, Tuple, List
 import numpy as np
+
+# Set legacy Keras mode before importing DeepFace
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 logger = logging.getLogger("vpay")
 

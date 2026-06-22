@@ -21,7 +21,7 @@ pytest==8.3.4
 httpx==0.28.1
 opencv-python-headless==4.10.0.84
 deepface==0.0.90
-tf-keras==2.15.0
+tf-keras>=2.15.0
 tensorflow==2.18.1
 # AASIST anti-spoofing dependencies
 transformers>=4.35.0
