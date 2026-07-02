@@ -29,6 +29,7 @@ ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/tmp/huggingface
 ENV PRELOAD_ML_MODELS=false
 ENV TF_USE_LEGACY_KERAS=1
+ENV AASIST_MODEL_PATH=pretrained_models/best_aasist_hinglish.pth
 
 # Expose port
 EXPOSE 10000

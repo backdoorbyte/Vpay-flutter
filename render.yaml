@@ -24,3 +24,7 @@ services:
         description: "Set to your Render PostgreSQL connection string"
       - key: CORS_ORIGINS
         value: '["https://vpay-flutter.onrender.com"]'
+      - key: AASIST_MODEL_PATH
+        value: "pretrained_models/best_aasist_hinglish.pth"
+      - key: LIVENESS_THRESHOLD
+        value: "0.5"
