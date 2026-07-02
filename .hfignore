@@ -1,16 +1,47 @@
-# Hugging Face Spaces - Ignore Flutter frontend
-# Only backend Python files will be deployed
+# Hugging Face Spaces - Ignore files not needed for deployment
 
+# Flutter app (frontend goes to separate repo)
 frontend/
+assets/
+macos/
+windows/
+linux/
+android/
+ios/
+build/
+test/
+*.png
+*.jpg
+*.jpeg
+*.app
+*.ipa
+*.apk
+
+# Large binary files (download during build)
+pretrained_models/*.pth
+pretrained_models/*.pt
+pretrained_models/*.bin
+
+# Audio files
+tmp_audio/
+
+# IDE and cache
 .claude/
-.git/
 .vscode/
 .idea/
 __pycache__/
 *.pyc
-venv/
-env/
+*.so
+
+# Environment
 .env
 .env.local
+venv/
+env/
+
+# Database
 *.db
+*.sqlite3
+
+# Logs
 *.log

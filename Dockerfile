@@ -23,6 +23,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code (excluding files in .dockerignore)
 COPY . .
 
+# Download AASIST model from HuggingFace
+RUN pip install --no-cache-dir huggingface_hub && \
+    huggingface-cli download jaded25/vpay-aasist-model best_aasist_hinglish.pth --local-dir ./pretrained_models --local-dir-use-symlinks False
+
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
