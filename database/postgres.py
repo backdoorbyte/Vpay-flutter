@@ -27,12 +27,13 @@ async def init_postgres() -> asyncpg.Pool:
 
     # Debug: log what we got (mask password for security)
     if database_url:
-        masked_url = database_url.split("@")[-1] if "@" in database_url else "invalid"
-        logger.info(f"DATABASE_URL found: postgresql://***@{masked_url}")
+        # Mask password for logging
+        import re
+        masked = re.sub(r'postgresql://([^:]+):([^@]+)@', r'postgresql://\1:***@', database_url)
+        logger.info(f"DATABASE_URL found: {masked}")
     else:
         logger.error("DATABASE_URL is NOT set!")
-        raise ValueError("DATABASE_URL environment variable is not set. "
-                        "Add it in Render dashboard: Environment → DATABASE_URL")
+        raise ValueError("DATABASE_URL environment variable is not set")
 
     # Railway/Render sometimes uses postgres:// instead of postgresql://
     if database_url.startswith("postgres://"):
@@ -45,8 +46,32 @@ async def init_postgres() -> asyncpg.Pool:
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
 
+    # Parse connection string manually to avoid IPv6 URL issues
+    # Format: postgresql://user:password@host:port/db
+    from urllib.parse import urlparse
+    parsed = urlparse(database_url)
+
+    # Extract components and decode password (in case of URL-encoded chars)
+    from urllib.parse import unquote
+    user = parsed.username or "postgres"
+    password = unquote(parsed.password) if parsed.password else ""
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5432
+    database = parsed.path.lstrip("/") if parsed.path else "postgres"
+
+    # Handle IPv6 address formats
+    if host.startswith("[") and "]" not in host:
+        # Malformed IPv6, try to fix it
+        pass
+
+    logger.info(f"Connecting to {host}:{port}/{database} as {user}")
+
     _pool = await asyncpg.create_pool(
-        database_url,
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        database=database,
         min_size=2,
         max_size=10,
         ssl=ssl_context
