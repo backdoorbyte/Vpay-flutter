@@ -1,21 +1,61 @@
-__pycache__
+# Frontend (not needed for backend deployment)
+frontend/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python cache
+__pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-*.so
-.git
-.gitignore
-*.md
-.vscode
-.idea
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (optional for testing)
+DEPLOYMENT.md
+DEPLOY_RENDER.md
+AASIST_ARCHITECTURE.md
+EER_EXPLAINED.md
+README_EVALUATION.md
+SETUP_GUIDE.md
+DELIVERABLES.md
+VOICE_PAYMENT_INTEGRATION.md
+
+# Notebooks
+*.ipynb
+
+# Log files
 *.log
+
+# Environment files
+.env
+.env.local
+
+# Local data
 data/
 tmp_audio/
 *.db
-.env
-venv/
-env/
+
+# Test coverage
 .pytest_cache/
 .coverage
 htmlcov/
