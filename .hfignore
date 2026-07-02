@@ -1,0 +1,16 @@
+# Hugging Face Spaces - Ignore Flutter frontend
+# Only backend Python files will be deployed
+
+frontend/
+.claude/
+.git/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+venv/
+env/
+.env
+.env.local
+*.db
+*.log
