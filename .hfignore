@@ -10,17 +10,26 @@ android/
 ios/
 build/
 test/
+
+# All image types
 *.png
 *.jpg
 *.jpeg
+*.gif
+*.ico
+
+# Binary app files
 *.app
 *.ipa
 *.apk
+*.dmg
 
-# Large binary files (download during build)
-pretrained_models/*.pth
-pretrained_models/*.pt
-pretrained_models/*.bin
+# Model files (download during build via huggingface-cli)
+pretrained_models/
+*.pth
+*.pt
+*.bin
+*.onnx
 
 # Audio files
 tmp_audio/
